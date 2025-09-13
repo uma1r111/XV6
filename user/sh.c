@@ -1,8 +1,10 @@
 // Shell.
 
 #include "kernel/types.h"
+#include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
+
 
 // Parsed command representation
 #define EXEC  1
@@ -49,6 +51,42 @@ struct backcmd {
   struct cmd *cmd;
 };
 
+// --- DEBUG TRACING HELPERS ---
+void trace_cmd(struct cmd *cmd) {
+  if (!cmd) {
+    printf("[trace] null cmd\n");
+    return;
+  }
+
+  switch(cmd->type) {
+    case EXEC: {
+      struct execcmd *ec = (struct execcmd*)cmd;
+      if (ec->argv[0])
+        printf("[trace] EXEC command: %s\n", ec->argv[0]);
+      else
+        printf("[trace] EXEC command: <empty>\n");
+      break;
+    }
+    case REDIR: {
+      struct redircmd *rc = (struct redircmd*)cmd;
+      printf("[trace] REDIR command: file='%s'\n", rc->file);
+      break;
+    }
+    case PIPE:
+      printf("[trace] PIPE command\n");
+      break;
+    case LIST:
+      printf("[trace] LIST command\n");
+      break;
+    case BACK:
+      printf("[trace] BACKGROUND command\n");
+      break;
+    default:
+      printf("[trace] Unknown cmd type = %d\n", cmd->type);
+  }
+}
+
+
 int fork1(void);  // Fork but panics on failure.
 void panic(char*);
 struct cmd *parsecmd(char*);
@@ -76,12 +114,14 @@ runcmd(struct cmd *cmd)
     ecmd = (struct execcmd*)cmd;
     if(ecmd->argv[0] == 0)
       exit(1);
+    printf("[runcmd] EXEC -> %s\n", ecmd->argv[0]);  
     exec(ecmd->argv[0], ecmd->argv);
     fprintf(2, "exec %s failed\n", ecmd->argv[0]);
     break;
 
   case REDIR:
     rcmd = (struct redircmd*)cmd;
+    printf("[runcmd] REDIR fd=%d file=%s\n", rcmd->fd, rcmd->file);
     close(rcmd->fd);
     if(open(rcmd->file, rcmd->mode) < 0){
       fprintf(2, "open %s failed\n", rcmd->file);
@@ -92,17 +132,21 @@ runcmd(struct cmd *cmd)
 
   case LIST:
     lcmd = (struct listcmd*)cmd;
+    printf("[runcmd] LIST: running left command\n");
     if(fork1() == 0)
       runcmd(lcmd->left);
     wait(0);
+    printf("[runcmd] LIST: running right command\n");
     runcmd(lcmd->right);
     break;
 
   case PIPE:
     pcmd = (struct pipecmd*)cmd;
+    printf("[runcmd] PIPE: setting up\n");
     if(pipe(p) < 0)
       panic("pipe");
     if(fork1() == 0){
+      printf("[runcmd] PIPE left child\n");
       close(1);
       dup(p[1]);
       close(p[0]);
@@ -110,6 +154,7 @@ runcmd(struct cmd *cmd)
       runcmd(pcmd->left);
     }
     if(fork1() == 0){
+      printf("[runcmd] PIPE right child\n");
       close(0);
       dup(p[0]);
       close(p[0]);
@@ -120,10 +165,12 @@ runcmd(struct cmd *cmd)
     close(p[1]);
     wait(0);
     wait(0);
+    printf("[runcmd] PIPE: children finished\n");
     break;
 
   case BACK:
     bcmd = (struct backcmd*)cmd;
+    printf("[runcmd] BACKGROUND command\n");
     if(fork1() == 0)
       runcmd(bcmd->cmd);
     break;
@@ -158,22 +205,26 @@ main(void)
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
-    char *cmd = buf;
-    while (*cmd == ' ' || *cmd == '\t')
-      cmd++;
-    if (*cmd == '\n') // is a blank command
+    printf("[shell] raw input: \"%s\"\n", buf);
+
+    // Parse into command tree
+    struct cmd *cmd = parsecmd(buf);
+    printf("[shell] parsed command\n");
+    trace_cmd(cmd);
+
+    // Handle cd separately (must be done in parent)
+    if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
+      buf[strlen(buf)-1] = 0;  // chop \n
+      if(chdir(buf+3) < 0)
+        fprintf(2, "cannot cd %s\n", buf+3);
       continue;
-    if(cmd[0] == 'c' && cmd[1] == 'd' && cmd[2] == ' '){
-      // Chdir must be called by the parent, not the child.
-      cmd[strlen(cmd)-1] = 0;  // chop \n
-      if(chdir(cmd+3) < 0)
-        fprintf(2, "cannot cd %s\n", cmd+3);
-    } else {
-      if(fork1() == 0)
-        runcmd(parsecmd(cmd));
-      wait(0);
     }
-  }
+
+    // Otherwise run in child
+    if(fork1() == 0)
+      runcmd(cmd);
+    wait(0);
+  }  
   exit(0);
 }
 
