@@ -15,6 +15,13 @@
 
 #define MAXARGS 10
 
+#define HISTORY_SIZE 20
+#define MAX_CMD 128
+
+char history[HISTORY_SIZE][MAX_CMD];
+int history_count = 0;   // total commands entered
+int history_index = 0;   // circular buffer index
+
 struct cmd {
   int type;
 };
@@ -114,6 +121,18 @@ runcmd(struct cmd *cmd)
     ecmd = (struct execcmd*)cmd;
     if(ecmd->argv[0] == 0)
       exit(1);
+
+    // --- custom history command ---
+    if(strcmp(ecmd->argv[0], "history") == 0){
+      int start = history_count < HISTORY_SIZE ? 0 : history_index;
+      int num = history_count < HISTORY_SIZE ? history_count : HISTORY_SIZE;
+      for(int i = 0; i < num; i++){
+        int idx = (start + i) % HISTORY_SIZE;
+        printf("%d: %s\n", i, history[idx]);
+      }
+      exit(0);
+    } 
+      
     printf("[runcmd] EXEC -> %s\n", ecmd->argv[0]);  
     exec(ecmd->argv[0], ecmd->argv);
     fprintf(2, "exec %s failed\n", ecmd->argv[0]);
@@ -184,21 +203,45 @@ getcmd(char *buf, int nbuf)
   write(2, "$ ", 2);
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
+
   if(buf[0] == 0) // EOF
     return -1;
+
+  // Handle command recall with !n
+  if (buf[0] == '!' && buf[1] >= '0' && buf[1] <= '9') {
+    int n = atoi(buf + 1);
+    if (n >= 0 && n < history_count) {
+      int idx = (history_index - history_count + n + HISTORY_SIZE) % HISTORY_SIZE;
+      strcpy(buf, history[idx]);
+      buf[nbuf - 1] = '\0'; // safety null termination
+      printf("Recalled: %s\n", buf);
+    } else {
+      printf("No such command in history\n");
+      buf[0] = '\0';
+    }
+  }  
+
+  // Save command into history (if not empty or just newline)
+  if(buf[0] != '\0' && buf[0] != '\n'){
+    strcpy(history[history_index], buf);
+    history[history_index][MAX_CMD - 1] = '\0';  // safety null termination
+    history_index = (history_index + 1) % HISTORY_SIZE;
+    if(history_count < HISTORY_SIZE) {
+      history_count++;
+    }
+  }
   return 0;
 }
 
-int
-main(void)
+int main(void)
 {
   static char buf[100];
   int fd;
 
-  // Ensure that three file descriptors are open.
+  // FUNCTION CALL 1: open() system call
   while((fd = open("console", O_RDWR)) >= 0){
     if(fd >= 3){
-      close(fd);
+      close(fd); // FUNCTION CALL 2: close() system call
       break;
     }
   }
@@ -548,3 +591,5 @@ nulterminate(struct cmd *cmd)
   }
   return cmd;
 }
+
+
