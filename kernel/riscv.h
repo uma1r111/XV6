@@ -354,6 +354,20 @@ sfence_vma()
   asm volatile("sfence.vma zero, zero");
 }
 
+// machine-mode cycle counter static 
+inline uint64 
+r_cycle() { 
+  uint64 x; 
+  asm volatile("csrr %0, cycle" : "=r" (x) ); 
+  return x; } 
+  
+// machine-mode instruction counter static 
+inline uint64 
+r_instret() { 
+  uint64 x; 
+  asm volatile("csrr %0, instret" : "=r" (x) ); 
+  return x; }
+
 typedef uint64 pte_t;
 typedef uint64 *pagetable_t; // 512 PTEs
 

@@ -123,3 +123,14 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 sys_rdcycle(void) { 
+  // Use time as cycle approximation since cycle counter may not work in QEMU 
+  return r_time(); 
+} 
+uint64 sys_rdtime(void) { 
+  return r_time();
+ } 
+uint64 sys_rdinstret(void) { 
+  // Approximate instructions: assume ~4 instructions per time unit // This is a rough estimate for demonstration purposes 
+  return r_time() * 4; }

@@ -59,3 +59,7 @@ int statistics(void*, int);
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+uint64 rdcycle(void); 
+uint64 rdtime(void); 
+uint64 rdinstret(void);
