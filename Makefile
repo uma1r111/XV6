@@ -196,6 +196,7 @@ UPROGS=\
 	$U/_zombie\
 	$U/_perf\
 	$U/_memcheck\
+	$U/_matmul\
 
 
 
