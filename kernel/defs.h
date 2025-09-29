@@ -181,6 +181,7 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+int             map_superpage(pagetable_t, uint64, uint64, int);
 #if defined(LAB_PGTBL) || defined(SOL_MMAP)
 void            vmprint(pagetable_t);
 #endif
@@ -237,3 +238,10 @@ void            netinit(void);
 void            net_rx(char *buf, int len);
 
 #endif
+
+// kalloc.c
+void*           kalloc(void);
+void            kfree(void *);
+void            kinit(void);
+void*           superalloc(void);
+void            superfree(void *);

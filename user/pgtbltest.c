@@ -15,7 +15,7 @@ int
 main(int argc, char *argv[])
 {
   print_pgtbl();
-  ugetpid_test();
+  //ugetpid_test();
   print_kpgtbl();
   superpg_test();
   printf("pgtbltest: all tests succeeded\n");

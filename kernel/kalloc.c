@@ -9,6 +9,11 @@
 #include "riscv.h"
 #include "defs.h"
 
+#ifndef LAB_PGTBL
+#define SUPERPGSIZE (2 * (1 << 20))
+#define SUPERPGROUNDUP(sz) (((sz)+SUPERPGSIZE-1) & ~(SUPERPGSIZE-1))
+#endif
+
 void freerange(void *pa_start, void *pa_end);
 
 extern char end[]; // first address after kernel.
@@ -23,11 +28,45 @@ struct {
   struct run *freelist;
 } kmem;
 
+// Superpage allocator
+#define NSUPERPAGES 8  // Number of 2MB superpages to reserve
+struct {
+  struct spinlock lock;
+  char *superpages[NSUPERPAGES];  // Array of 2MB regions
+  int used[NSUPERPAGES];          // 1 if used, 0 if free
+} superkmem;
+
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
-  freerange(end, (void*)PHYSTOP);
+  initlock(&superkmem.lock, "superkmem");
+  
+  // Initialize superpage allocator
+  for(int i = 0; i < NSUPERPAGES; i++) {
+    superkmem.superpages[i] = 0;
+    superkmem.used[i] = 0;
+  }
+  
+  // Reserve some 2MB-aligned regions for superpages before general allocation
+  char *p = (char*)PGROUNDUP((uint64)end);
+  
+  // Find 2MB-aligned regions and reserve them
+  int reserved = 0;
+  while(p + SUPERPGSIZE <= (char*)PHYSTOP && reserved < NSUPERPAGES) {
+    // Align to 2MB boundary
+    uint64 aligned = SUPERPGROUNDUP((uint64)p);
+    if(aligned + SUPERPGSIZE <= PHYSTOP) {
+      superkmem.superpages[reserved] = (char*)aligned;
+      reserved++;
+      p = (char*)(aligned + SUPERPGSIZE);
+    } else {
+      break;
+    }
+  }
+  
+  // Free the remaining memory for regular allocation
+  freerange(p, (void*)PHYSTOP);
 }
 
 void
@@ -79,4 +118,51 @@ kalloc(void)
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
+}
+
+// Allocate one 2MB superpage of physical memory.
+// Returns a 2MB-aligned pointer that the kernel can use.
+// Returns 0 if no superpage is available.
+void *
+superalloc(void)
+{
+  acquire(&superkmem.lock);
+  
+  for(int i = 0; i < NSUPERPAGES; i++) {
+    if(superkmem.superpages[i] && !superkmem.used[i]) {
+      superkmem.used[i] = 1;
+      void *result = superkmem.superpages[i];
+      release(&superkmem.lock);
+      
+      // Clear the superpage
+      memset(result, 0, SUPERPGSIZE);
+      return result;
+    }
+  }
+  
+  release(&superkmem.lock);
+  return 0;  // No superpage available
+}
+
+// Free a 2MB superpage.
+void
+superfree(void *pa)
+{
+  if(((uint64)pa % SUPERPGSIZE) != 0)
+    panic("superfree: not superpage aligned");
+    
+  acquire(&superkmem.lock);
+  
+  for(int i = 0; i < NSUPERPAGES; i++) {
+    if(superkmem.superpages[i] == pa) {
+      if(!superkmem.used[i])
+        panic("superfree: already free");
+      superkmem.used[i] = 0;
+      release(&superkmem.lock);
+      return;
+    }
+  }
+  
+  release(&superkmem.lock);
+  panic("superfree: not a superpage");
 }

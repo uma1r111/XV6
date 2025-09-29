@@ -63,3 +63,7 @@ void free(void*);
 uint64 rdcycle(void); 
 uint64 rdtime(void); 
 uint64 rdinstret(void);
+
+
+#define SUPERPGROUNDDOWN(addr) ((addr) & ~(SUPERSIZE - 1))
+#define ISSUPERALIGNED(addr) (((addr) & (SUPERSIZE - 1)) == 0)
