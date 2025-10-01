@@ -36,6 +36,10 @@ start()
   // access to all of physical memory.
   w_pmpaddr0(0x3fffffffffffffull);
   w_pmpcfg0(0xf);
+  
+  // Enable cycle, time, and instret counters for supervisor mode
+  // bit 0: cycle, bit 1: time, bit 2: instret
+  w_mcounteren(r_mcounteren() | 0x7);
 
   // ask for clock interrupts.
   timerinit();
@@ -54,13 +58,14 @@ timerinit()
 {
   // enable supervisor-mode timer interrupts.
   w_mie(r_mie() | MIE_STIE);
-  
+
   // enable the sstc extension (i.e. stimecmp).
-  w_menvcfg(r_menvcfg() | (1L << 63)); 
-  
-  // allow supervisor to use stimecmp and time.
-  w_mcounteren(r_mcounteren() | 2);
-  
+  w_menvcfg(r_menvcfg() | (1L << 63));
+
+  // Note: mcounteren is now set in start() with all three counters enabled
+  // This line is redundant but keeping for compatibility
+  w_mcounteren(r_mcounteren() | 0x7);
+
   // ask for the very first timer interrupt.
   w_stimecmp(r_time() + 1000000);
 }

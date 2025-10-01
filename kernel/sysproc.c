@@ -124,13 +124,26 @@ sys_uptime(void)
   return xticks;
 }
 
-uint64 sys_rdcycle(void) { 
-  // Use time as cycle approximation since cycle counter may not work in QEMU 
-  return r_time(); 
-} 
-uint64 sys_rdtime(void) { 
-  return r_time();
- } 
-uint64 sys_rdinstret(void) { 
-  // Approximate instructions: assume ~4 instructions per time unit // This is a rough estimate for demonstration purposes 
-  return r_time() * 4; }
+uint64
+sys_rdcycle(void)
+{
+  uint64 x;
+  asm volatile("csrr %0, cycle" : "=r" (x));
+  return x;
+}
+
+uint64
+sys_rdtime(void)
+{
+  uint64 x;
+  asm volatile("csrr %0, time" : "=r" (x));
+  return x;
+}
+
+uint64
+sys_rdinstret(void)
+{
+  uint64 x;
+  asm volatile("csrr %0, instret" : "=r" (x));
+  return x;
+}

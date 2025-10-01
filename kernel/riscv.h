@@ -128,6 +128,13 @@ r_sepc()
   return x;
 }
 
+// Write supervisor counter enable register
+static inline void
+w_scounteren(uint64 x)
+{
+  asm volatile("csrw scounteren, %0" : : "r" (x));
+}
+
 // Machine Exception Delegation
 static inline uint64
 r_medeleg()
