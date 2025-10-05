@@ -1,0 +1,21 @@
+=== MATRIX MULTIPLICATION BENCHMARK ===
+Matrix_Size,Cycles,Time,Instructions
+Testing matrix size 100x100...
+100,150634,150634,602536
+  Cycles: 150634
+  Time: 150634
+  Instructions: 602536
+
+Testing matrix size 200x200...
+200,1202990,1202991,4811960
+  Cycles: 1202990
+  Time: 1202991
+  Instructions: 4811960
+
+Testing matrix size 400x400...
+400,9615164,9615165,38460656
+  Cycles: 9615164
+  Time: 9615165
+  Instructions: 38460656
+
+=== BENCHMARK COMPLETE ===

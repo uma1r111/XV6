@@ -1,0 +1,46 @@
+With Normal Pages:
+
+=== MATRIX MULTIPLICATION BENCHMARK ===
+Using BASELINE: Static arrays (4KB pages)
+Matrix_Size,Cycles,Time,Instructions
+Testing matrix size 100x100...
+100,8093477,80935,8093477
+  Cycles: 8093477
+  Time: 80935
+  Instructions: 8093477
+
+Testing matrix size 200x200...
+200,64389648,643897,64389648
+  Cycles: 64389648
+  Time: 643897
+  Instructions: 64389648
+
+Testing matrix size 400x400...
+400,513721067,5137211,513721067
+  Cycles: 513721067
+  Time: 5137211
+  Instructions: 513721067
+
+
+With Superpages:
+
+=== MATRIX MULTIPLICATION BENCHMARK ===
+Using BASELINE: Static arrays (4KB pages)
+Matrix_Size,Cycles,Time,Instructions
+Testing matrix size 100x100...
+100,8093477,80935,8093477
+  Cycles: 8093477
+  Time: 80935
+  Instructions: 8093477
+
+Testing matrix size 200x200...
+200,64373607,643737,64373607
+  Cycles: 64373607
+  Time: 643737
+  Instructions: 64373607
+
+Testing matrix size 400x400...
+400,547061201,5470612,547061201
+  Cycles: 547061201
+  Time: 5470612
+  Instructions: 547061201

@@ -85,7 +85,7 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -DLAB_PGTBL
+CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -DLAB_PGTBL $(EXTRA_CFLAGS)
 
 ifdef LAB
 LABUPPER = $(shell echo $(LAB) | tr a-z A-Z)
@@ -197,6 +197,8 @@ UPROGS=\
 	$U/_perf\
 	$U/_memcheck\
 	$U/_matmul\
+	$U/_matmul_super\
+	$U/_matmul_combined\
 
 
 
